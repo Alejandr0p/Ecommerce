@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Email - TechStore</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .verification-container {
+            max-width: 500px;
+            margin: 20px;
+            padding: 40px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+        
+        .success {
+            color: #4CAF50;
+        }
+        
+        .error {
+            color: #f44336;
+        }
+        
+        .loading {
+            color: #2196F3;
+        }
+        
+        .message-box {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .success-box {
+            background-color: #e8f5e9;
+            border: 2px solid #4CAF50;
+        }
+        
+        .error-box {
+            background-color: #ffebee;
+            border: 2px solid #f44336;
+        }
+        
+        .loading-box {
+            background-color: #e3f2fd;
+            border: 2px solid #2196F3;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            margin: 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .btn-secondary {
+            background-color: #667eea;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a67d8;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info-text {
+            color: #666;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="logo">🛒</div>
+        <h1>TechStore</h1>
+        <div id="verificationMessage">
+            <div class="message-box loading-box">
+                <div class="spinner"></div>
+                <p class="loading">Verificando tu email...</p>
+                <p style="color: #666; margin-top: 10px;">Esto tomará solo un momento</p>
+            </div>
+        </div>
+        <div id="actionButtons" style="display: none;">
+            <a href="index.html" class="btn">Ir a la tienda</a>
+            <button onclick="location.reload()" class="btn btn-secondary">Reintentar</button>
+        </div>
+        <p class="info-text">© 2024 TechStore. Todos los derechos reservados.</p>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        
+        async function verifyEmail() {
+            // Obtener el token de la URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const messageDiv = document.getElementById('verificationMessage');
+            const actionButtons = document.getElementById('actionButtons');
+            
+            // Si no hay token, mostrar error
+            if (!token) {
+                messageDiv.innerHTML = `
+                    <div class="message-box error-box">
+                        <h2 class="error">❌ Error de Verificación</h2>
+                        <p>No se encontró el token de verificación.</p>
+                        <p style="color: #666; margin-top: 15px;">Por favor, asegúrate de usar el enlace completo que enviamos a tu correo electrónico.</p>
+                    </div>
+                `;
+                actionButtons.style.display = 'block';
+                return;
+            }
+            
+            try {
+                // Intentar verificar el email
+                const response = await fetch(`${API_URL}/auth/verify/${token}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Verificación exitosa
+                    messageDiv.innerHTML = `
+                        <div class="message-box success-box">
+                            <h2 class="success">✅ ¡Email Verificado!</h2>
+                            <p style="font-size: 1.1rem; margin: 15px 0;">Tu cuenta ha sido verificada exitosamente.</p>
+                            <p style="color: #666;">Ya puedes iniciar sesión y comenzar a disfrutar de todos los beneficios de TechStore.</p>
+                            <div style="margin-top: 20px;">
+                                <p>🎉 ¡Bienvenido a la familia TechStore!</p>
+                            </div>
+                        </div>
+                    `;
+                    actionButtons.style.display = 'block';
+                    
+                    // Redirigir automáticamente después de 3 segundos
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 3000);
+                    
+                } else {
+                    // Error en la verificación
+                    let errorMessage = data.error || 'Error al verificar el email';
+                    
+                    // Mensajes personalizados según el error
+                    if (errorMessage.includes('inválido') || errorMessage.includes('expirado')) {
+                        errorMessage = 'El enlace de verificación ha expirado o no es válido.';
+                    }
+                    
+                    messageDiv.innerHTML = `
+                        <div class="message-box error-box">
+                            <h2 class="error">❌ Error de Verificación</h2>
+                            <p style="margin: 15px 0;">${errorMessage}</p>
+                            <p style="color: #666; margin-top: 15px;">
+                                Por favor, intenta registrarte nuevamente o contacta a soporte si el problema persiste.
+                            </p>
+                        </div>
+                    `;
+                    actionButtons.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                
+                // Error de conexión
+                messageDiv.innerHTML = `
+                    <div class="message-box error-box">
+                        <h2 class="error">❌ Error de Conexión</h2>
+                        <p>No se pudo conectar con el servidor.</p>
+                        <p style="color: #666; margin-top: 15px;">
+                            Por favor, verifica tu conexión a internet e intenta nuevamente.
+                        </p>
+                    </div>
+                `;
+                actionButtons.style.display = 'block';
+            }
+        }
+        
+        // Iniciar verificación cuando la página cargue
+        document.addEventListener('DOMContentLoaded', () => {
+            verifyEmail();
+        });
+    </script>
+</body>
+</html>
